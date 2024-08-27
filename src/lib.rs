@@ -1,5 +1,5 @@
 use state::State;
-use winit::{event::{Event, WindowEvent}, event_loop::{ControlFlow, EventLoop}};
+use winit::{event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey}};
 
 mod state;
 mod vertex;
@@ -9,7 +9,7 @@ pub async fn run() {
     event_loop.set_control_flow(ControlFlow::Wait);
 
     let window = winit::window::WindowBuilder::new()
-        .with_fullscreen(None)
+        .with_fullscreen(Some(winit::window::Fullscreen::Borderless(None)))
         .with_title("Jarvis")
         .build(&event_loop)
         .unwrap();
@@ -30,7 +30,15 @@ pub async fn run() {
                     WindowEvent::RedrawRequested => {
                         state.render();
                     }
-                    WindowEvent::CloseRequested => target.exit(),
+                    WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
+                        event:
+                            KeyEvent {
+                                state: ElementState::Pressed,
+                                physical_key: PhysicalKey::Code(KeyCode::Escape),
+                                ..
+                            },
+                        ..
+                    } => target.exit(),
                     _ => {}
                 };
             }

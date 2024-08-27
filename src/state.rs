@@ -114,7 +114,8 @@ impl<'a> State<'a> {
             multiview: None,
             cache: None, 
         });
-        let circle = generate_circle();
+        let aspect_ratio = size.width as f32 / size.height as f32;
+        let circle = generate_circle(aspect_ratio);
         //Создаем вертекс буфер
         let vertex_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {

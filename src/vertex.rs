@@ -1,11 +1,9 @@
 
-const COLOR:[f32; 3] = [0.5028864580325687, 0.0, 0.5028864580325687];
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
     position: [f32; 3],
-    color: [f32; 3],
+    color: [f32; 3]
 }
 impl Vertex {
     const ATTRIBS: [wgpu::VertexAttribute; 2] =
@@ -22,18 +20,19 @@ impl Vertex {
     }
 }
 
-pub fn generate_circle() -> (Vec<Vertex>, Vec<u16>) {
+pub fn generate_circle(aspect_ratio: f32) -> (Vec<Vertex>, Vec<u16>) {
     
     let mut positions = Vec::new();
     let mut indices = Vec::new();
     //Центр круга
-    positions.push(Vertex {position: [0.0, 0.0, 0.0], color: COLOR});
+    positions.push(Vertex {position: [0.0, 0.0, 0.0], color: [0.0,0.0,0.0]});
 
     for i in 0..361 {
         let radians = (i as f32).to_radians();
-        let x = radians.sin();
-        let y = radians.cos();
-        positions.push(Vertex {position: [x, y, 0.0], color: COLOR});
+        let x = radians.sin() * 0.5;
+        let y = radians.cos() * 0.5 * aspect_ratio;
+
+        positions.push(Vertex {position: [x, y, 0.0], color: [0.5,0.2,0.5]});
         if i == 0 {continue};
         indices.push(i);
         indices.push(0);
