@@ -1,79 +1,39 @@
 use winit::{event::WindowEvent, window::Window};
 use wgpu::util::DeviceExt;
 
-use crate::vertex::{generate_circle, Vertex};
+use crate::{setup::{self, Preload}, vertex::{generate_circle, Vertex}};
+
+const BLACK:[f32; 3] = [0.0, 0.0, 0.0];
+const PURPLE:[f32; 3] = [0.462745098, 0.584313725, 1.0];
 
 pub struct State<'a> {
-    surface: wgpu::Surface<'a>,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
-    size: winit::dpi::PhysicalSize<u32>,
     window: &'a Window,
+    hardware: Preload<'a>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer, 
+    vertex_buffer_2: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
+    index_buffer_2: wgpu::Buffer,
     num_indices: u32
 }
 
 impl<'a> State<'a> {
 
     pub async fn new(window: &'a Window) -> State<'a> {
-        //Устанавливаем размер окна
-        let size = window.inner_size();
-    
-        let instance = wgpu::Instance::default();
-        //Создаем поверхность
-        let surface = instance.create_surface(window).unwrap();
-        //Запрашиваем адаптер для работы с графикой
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::HighPerformance,
-                force_fallback_adapter: false,
-                compatible_surface: Some(&surface),
-            })
-            .await.unwrap();
-        //Создаем устройство из адаптера
-        let (device, queue) = adapter
-            .request_device(
-            &wgpu::DeviceDescriptor {
-                label: None,
-                required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::default()
-                    .using_resolution(adapter.limits()),
-                memory_hints: wgpu::MemoryHints::Performance,
-            },
-            None,
-        )
-        .await.unwrap();
-
-        let swapchain_capabilities = surface.get_capabilities(&adapter);
-        let swapchain_format = swapchain_capabilities.formats.iter()
-            .find(|f| f.is_srgb())
-            .copied()
-            .unwrap_or(swapchain_capabilities.formats[0]);
-        //Создаем конфиг для поверхности
-        let config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: swapchain_format,
-            width: size.width,
-            height: size.height,
-            present_mode: swapchain_capabilities.present_modes[0],
-            alpha_mode: swapchain_capabilities.alpha_modes[0],
-            view_formats: vec![],
-            desired_maximum_frame_latency: 2,
-        };
+        // Настройка поверхности и устройства
+        let hardware = setup::start(window).await;
+        
         //Создаем объект шейдера
-        let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
-    
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        let shader = hardware.device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));    
+
+        let pipeline_layout = hardware.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[],
             push_constant_ranges: &[],
         });
     
         //Создаем графический конвейер
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let render_pipeline = hardware.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(&pipeline_layout),
             //Указываем вертекс шейдеры (позиции объекта)
@@ -91,7 +51,7 @@ impl<'a> State<'a> {
                 entry_point: "fs_main",
                 compilation_options:  wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
+                    format: hardware.config.format,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
@@ -114,21 +74,37 @@ impl<'a> State<'a> {
             multiview: None,
             cache: None, 
         });
-        let aspect_ratio = size.width as f32 / size.height as f32;
-        let circle = generate_circle(aspect_ratio);
+
+        let aspect_ratio = hardware.size.width as f32 / hardware.size.height as f32;
+        let circle = generate_circle(aspect_ratio, 0.4, PURPLE);
+        let circle_2 = generate_circle(aspect_ratio, 0.3, BLACK);
         //Создаем вертекс буфер
-        let vertex_buffer = device.create_buffer_init(
+        let vertex_buffer = hardware.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: None,
                 contents: bytemuck::cast_slice(&circle.0),
                 usage: wgpu::BufferUsages::VERTEX,
             }
         );
+        let vertex_buffer_2 = hardware.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(&circle_2.0),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
         //Индекс буфер
-        let index_buffer = device.create_buffer_init(
+        let index_buffer = hardware.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: None,
                 contents: bytemuck::cast_slice(&circle.1),
+                usage: wgpu::BufferUsages::INDEX,
+            }
+        );
+        let index_buffer_2 = hardware.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(&circle_2.1),
                 usage: wgpu::BufferUsages::INDEX,
             }
         );
@@ -136,14 +112,12 @@ impl<'a> State<'a> {
         
         Self {
             window,
-            surface,
-            device,
-            queue,
-            config,
-            size,
+            hardware,
             render_pipeline,
             vertex_buffer,
+            vertex_buffer_2,
             index_buffer,
+            index_buffer_2,
             num_indices
         }
     }
@@ -153,10 +127,10 @@ impl<'a> State<'a> {
     }
     //Метод - при изменении размера окна нужно переконфигурировать размер поверхности
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        self.size = new_size;
-        self.config.width = new_size.width;
-        self.config.height = new_size.height;
-        self.surface.configure(&self.device, &self.config);
+        self.hardware.size = new_size;
+        self.hardware.config.width = new_size.width;
+        self.hardware.config.height = new_size.height;
+        self.hardware.surface.configure(&self.hardware.device, &self.hardware.config);
     }
 
     fn input(&mut self, event: &WindowEvent) -> bool {
@@ -169,11 +143,11 @@ impl<'a> State<'a> {
 
     pub fn render(&mut self) {
         // Получаем следующий кадр.
-        let frame = self.surface.get_current_texture().unwrap();
+        let frame = self.hardware.surface.get_current_texture().unwrap();
         // Создаём View для изображения этого кадра.
         let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
         // Создаем объект для записи последовательности команд рендеринга в буфер для его передачи в устройство на выполнение
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {label: None});
+        let mut encoder = self.hardware.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {label: None});
         //Новая область видимости чтобы RenderPass жил не дольше чем CommandEncoder
         {
             let mut rpass =
@@ -198,9 +172,13 @@ impl<'a> State<'a> {
             rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             //Рисуем объекты с вершинами и кол-вом
             rpass.draw_indexed(0..self.num_indices,0, 0..1);
+
+            rpass.set_vertex_buffer(0, self.vertex_buffer_2.slice(..));
+            rpass.set_index_buffer(self.index_buffer_2.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..self.num_indices,0, 0..1);
         }
         // Передаем буфер в очередь команд устройства
-        self.queue.submit(Some(encoder.finish()));
+        self.hardware.queue.submit(Some(encoder.finish()));
         // Отображаем готовый кадр
         frame.present();
     }

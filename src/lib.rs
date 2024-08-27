@@ -3,6 +3,8 @@ use winit::{event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{Co
 
 mod state;
 mod vertex;
+mod buffers;
+mod setup;
 
 pub async fn run() {
     let event_loop = EventLoop::new().unwrap();

@@ -20,19 +20,19 @@ impl Vertex {
     }
 }
 
-pub fn generate_circle(aspect_ratio: f32) -> (Vec<Vertex>, Vec<u16>) {
+pub fn generate_circle(aspect_ratio: f32, radius: f32, color: [f32; 3]) -> (Vec<Vertex>, Vec<u16>) {
     
     let mut positions = Vec::new();
     let mut indices = Vec::new();
     //Центр круга
-    positions.push(Vertex {position: [0.0, 0.0, 0.0], color: [0.0,0.0,0.0]});
+    positions.push(Vertex {position: [0.0, 0.0, 1.0], color});
 
     for i in 0..361 {
         let radians = (i as f32).to_radians();
-        let x = radians.sin() * 0.5;
-        let y = radians.cos() * 0.5 * aspect_ratio;
+        let x = radians.sin() * radius;
+        let y = radians.cos() * radius * aspect_ratio;
 
-        positions.push(Vertex {position: [x, y, 0.0], color: [0.5,0.2,0.5]});
+        positions.push(Vertex {position: [x, y, 1.0], color});
         if i == 0 {continue};
         indices.push(i);
         indices.push(0);
@@ -40,4 +40,5 @@ pub fn generate_circle(aspect_ratio: f32) -> (Vec<Vertex>, Vec<u16>) {
     };
     (positions, indices)
 }
+
 
