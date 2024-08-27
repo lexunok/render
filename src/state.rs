@@ -1,19 +1,13 @@
 use winit::{event::WindowEvent, window::Window};
-use wgpu::util::DeviceExt;
 
-use crate::{setup::{self, Preload}, vertex::{generate_circle, Vertex}};
-
-const BLACK:[f32; 3] = [0.0, 0.0, 0.0];
-const PURPLE:[f32; 3] = [0.462745098, 0.584313725, 1.0];
+use crate::{buffers, setup::{self, Preload}, vertex::Vertex};
 
 pub struct State<'a> {
     window: &'a Window,
     hardware: Preload<'a>,
     render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
-    vertex_buffer_2: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
-    index_buffer_2: wgpu::Buffer,
+    vertex_buffers: Vec<wgpu::Buffer>,
+    index_buffers: Vec<wgpu::Buffer>,
     num_indices: u32
 }
 
@@ -22,6 +16,8 @@ impl<'a> State<'a> {
     pub async fn new(window: &'a Window) -> State<'a> {
         // Настройка поверхности и устройства
         let hardware = setup::start(window).await;
+        // Соотношение сторон
+        let aspect_ratio = hardware.size.width as f32 / hardware.size.height as f32;
         
         //Создаем объект шейдера
         let shader = hardware.device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));    
@@ -75,49 +71,16 @@ impl<'a> State<'a> {
             cache: None, 
         });
 
-        let aspect_ratio = hardware.size.width as f32 / hardware.size.height as f32;
-        let circle = generate_circle(aspect_ratio, 0.4, PURPLE);
-        let circle_2 = generate_circle(aspect_ratio, 0.3, BLACK);
-        //Создаем вертекс буфер
-        let vertex_buffer = hardware.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(&circle.0),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-        let vertex_buffer_2 = hardware.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(&circle_2.0),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-        //Индекс буфер
-        let index_buffer = hardware.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(&circle.1),
-                usage: wgpu::BufferUsages::INDEX,
-            }
-        );
-        let index_buffer_2 = hardware.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(&circle_2.1),
-                usage: wgpu::BufferUsages::INDEX,
-            }
-        );
-        let num_indices = circle.1.len() as u32;
-        
+        let (vertex_buffers, index_buffers) = buffers::create(aspect_ratio, &hardware.device);
+
+        let num_indices = 1080 as u32;
+
         Self {
             window,
             hardware,
             render_pipeline,
-            vertex_buffer,
-            vertex_buffer_2,
-            index_buffer,
-            index_buffer_2,
+            vertex_buffers,
+            index_buffers,
             num_indices
         }
     }
@@ -168,13 +131,13 @@ impl<'a> State<'a> {
             //Задаем графический конвейер
             rpass.set_pipeline(&self.render_pipeline);
             //Устанавливаем буферы
-            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, self.vertex_buffers[0].slice(..));
+            rpass.set_index_buffer(self.index_buffers[0].slice(..), wgpu::IndexFormat::Uint16);
             //Рисуем объекты с вершинами и кол-вом
             rpass.draw_indexed(0..self.num_indices,0, 0..1);
 
-            rpass.set_vertex_buffer(0, self.vertex_buffer_2.slice(..));
-            rpass.set_index_buffer(self.index_buffer_2.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, self.vertex_buffers[1].slice(..));
+            rpass.set_index_buffer(self.index_buffers[1].slice(..), wgpu::IndexFormat::Uint16);
             rpass.draw_indexed(0..self.num_indices,0, 0..1);
         }
         // Передаем буфер в очередь команд устройства
