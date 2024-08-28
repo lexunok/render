@@ -38,11 +38,11 @@ pub async fn start(window: &Window) -> Preload {
             .await.unwrap();
     
             let swapchain_capabilities = surface.get_capabilities(&adapter);
-            let swapchain_format = swapchain_capabilities.formats[0];
+   
             //Создаем конфиг для поверхности
             let config = wgpu::SurfaceConfiguration {
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                format: swapchain_format,
+                format: wgpu::TextureFormat::Bgra8UnormSrgb,
                 width: size.width,
                 height: size.height,
                 present_mode: swapchain_capabilities.present_modes[0],

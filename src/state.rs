@@ -1,3 +1,4 @@
+use wgpu::BlendComponent;
 use winit::{event::WindowEvent, window::Window};
 
 use crate::{buffers, setup::{self, Preload}, vertex::Vertex};
@@ -7,8 +8,7 @@ pub struct State<'a> {
     hardware: Preload<'a>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffers: Vec<wgpu::Buffer>,
-    index_buffers: Vec<wgpu::Buffer>,
-    num_indices: u32
+    index_buffers: Vec<wgpu::Buffer>
 }
 
 impl<'a> State<'a> {
@@ -48,7 +48,18 @@ impl<'a> State<'a> {
                 compilation_options:  wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: hardware.config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
+                    blend: Some(wgpu::BlendState {
+                        color: BlendComponent {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add
+                        },
+                        alpha: BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add
+                        }
+                    }),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
@@ -73,15 +84,12 @@ impl<'a> State<'a> {
 
         let (vertex_buffers, index_buffers) = buffers::create(aspect_ratio, &hardware.device);
 
-        let num_indices = 1080 as u32;
-
         Self {
             window,
             hardware,
             render_pipeline,
             vertex_buffers,
-            index_buffers,
-            num_indices
+            index_buffers
         }
     }
 
@@ -128,17 +136,20 @@ impl<'a> State<'a> {
                     timestamp_writes: None,
                     occlusion_query_set: None,
                 });
+
             //Задаем графический конвейер
             rpass.set_pipeline(&self.render_pipeline);
-            //Устанавливаем буферы
-            rpass.set_vertex_buffer(0, self.vertex_buffers[0].slice(..));
-            rpass.set_index_buffer(self.index_buffers[0].slice(..), wgpu::IndexFormat::Uint16);
-            //Рисуем объекты с вершинами и кол-вом
-            rpass.draw_indexed(0..self.num_indices,0, 0..1);
-
+            
             rpass.set_vertex_buffer(0, self.vertex_buffers[1].slice(..));
-            rpass.set_index_buffer(self.index_buffers[1].slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..self.num_indices,0, 0..1);
+            rpass.draw(0..2160, 0..1);
+            rpass.set_vertex_buffer(0, self.vertex_buffers[2].slice(..));
+            rpass.draw(0..2160, 0..1);
+
+            rpass.set_vertex_buffer(0, self.vertex_buffers[0].slice(..));
+            rpass.draw(0..2160, 0..1);
+
+            //rpass.set_index_buffer(self.index_buffers[0].slice(..), wgpu::IndexFormat::Uint16);
+            //rpass.draw_indexed(0..self.num_indices,0, 0..1);
         }
         // Передаем буфер в очередь команд устройства
         self.hardware.queue.submit(Some(encoder.finish()));
