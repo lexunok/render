@@ -7,8 +7,8 @@ pub struct State<'a> {
     window: &'a Window,
     hardware: Preload<'a>,
     render_pipeline: wgpu::RenderPipeline,
-    vertex_buffers: Vec<wgpu::Buffer>,
-    index_buffers: Vec<wgpu::Buffer>
+    time:f32,
+    is_inc: bool
 }
 
 impl<'a> State<'a> {
@@ -16,8 +16,6 @@ impl<'a> State<'a> {
     pub async fn new(window: &'a Window) -> State<'a> {
         // Настройка поверхности и устройства
         let hardware = setup::start(window).await;
-        // Соотношение сторон
-        let aspect_ratio = hardware.size.width as f32 / hardware.size.height as f32;
         
         //Создаем объект шейдера
         let shader = hardware.device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));    
@@ -81,15 +79,13 @@ impl<'a> State<'a> {
             multiview: None,
             cache: None, 
         });
-
-        let (vertex_buffers, index_buffers) = buffers::create(aspect_ratio, &hardware.device);
-
+        let time = 0.0;
         Self {
             window,
             hardware,
             render_pipeline,
-            vertex_buffers,
-            index_buffers
+            time,
+            is_inc: true
         }
     }
 
@@ -113,6 +109,21 @@ impl<'a> State<'a> {
     }
 
     pub fn render(&mut self) {
+        if self.time < -0.03 {
+            self.is_inc = true;
+        }
+        else if self.time > 0.03 {
+            self.is_inc = false;
+        }
+        if self.is_inc {
+            self.time += 0.00005;
+        }
+        else {
+            self.time -= 0.00005;
+        }
+  
+        let aspect_ratio = self.hardware.size.width as f32 / self.hardware.size.height as f32;
+        let vertex_buffers = buffers::create(aspect_ratio, &self.hardware.device, self.time);
         // Получаем следующий кадр.
         let frame = self.hardware.surface.get_current_texture().unwrap();
         // Создаём View для изображения этого кадра.
@@ -140,12 +151,12 @@ impl<'a> State<'a> {
             //Задаем графический конвейер
             rpass.set_pipeline(&self.render_pipeline);
             
-            rpass.set_vertex_buffer(0, self.vertex_buffers[1].slice(..));
-            rpass.draw(0..2160, 0..1);
-            rpass.set_vertex_buffer(0, self.vertex_buffers[2].slice(..));
+            rpass.set_vertex_buffer(0, vertex_buffers[0].slice(..));
             rpass.draw(0..2160, 0..1);
 
-            rpass.set_vertex_buffer(0, self.vertex_buffers[0].slice(..));
+            rpass.set_vertex_buffer(0, vertex_buffers[1].slice(..));
+            rpass.draw(0..2160, 0..1);
+            rpass.set_vertex_buffer(0, vertex_buffers[2].slice(..));
             rpass.draw(0..2160, 0..1);
 
             //rpass.set_index_buffer(self.index_buffers[0].slice(..), wgpu::IndexFormat::Uint16);

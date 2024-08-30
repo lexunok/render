@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use state::State;
 use winit::{event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey}};
 
@@ -8,7 +10,7 @@ mod setup;
 
 pub async fn run() {
     let event_loop = EventLoop::new().unwrap();
-    event_loop.set_control_flow(ControlFlow::Wait);
+    event_loop.set_control_flow(ControlFlow::Poll);
 
     let window = winit::window::WindowBuilder::new()
         .with_fullscreen(Some(winit::window::Fullscreen::Borderless(None)))
@@ -20,29 +22,30 @@ pub async fn run() {
 
     event_loop
         .run(move |event, target| {
-            if let Event::WindowEvent {
-                window_id: _,
-                event,
-            } = event
-            {
-                match event {
-                    WindowEvent::Resized(new_size) => {
-                        state.resize(new_size);
-                    }
-                    WindowEvent::RedrawRequested => {
-                        state.render();
-                    }
-                    WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
-                        event:
-                            KeyEvent {
-                                state: ElementState::Pressed,
-                                physical_key: PhysicalKey::Code(KeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => target.exit(),
-                    _ => {}
-                };
+            match event {
+                Event::AboutToWait => {
+                    state.window().request_redraw();
+                },
+                Event::WindowEvent { window_id, event } 
+                    => match event {
+                        WindowEvent::Resized(new_size) => {
+                            state.resize(new_size);
+                        }
+                        WindowEvent::RedrawRequested => {
+                            state.render();
+                        },
+                        WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
+                            event:
+                                KeyEvent {
+                                    state: ElementState::Pressed,
+                                    physical_key: PhysicalKey::Code(KeyCode::Escape),
+                                    ..
+                                },
+                            ..
+                        } => target.exit(),
+                        _ => {}
+                },
+                _ => {}
             }
         })
         .unwrap();

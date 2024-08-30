@@ -75,7 +75,7 @@ pub fn generate_ring(aspect_ratio: f32, radius: f32, inner_radius:f32, color: [f
     (positions, indices)
 }
 
-pub fn generate_glow_ring(aspect_ratio: f32, radius: f32, inner_radius:f32, color_first: [f32; 4], color_second: [f32; 4]) -> (Vec<Vertex>, Vec<u16>) {
+pub fn generate_glow_ring(aspect_ratio: f32, time:f32, outer_radius: f32, inner_radius:f32, color_first: [f32; 4], color_second: [f32; 4]) -> (Vec<Vertex>, Vec<u16>) {
     
     let mut positions = Vec::new();
     let mut indices = Vec::new();
@@ -84,19 +84,20 @@ pub fn generate_glow_ring(aspect_ratio: f32, radius: f32, inner_radius:f32, colo
         let radians = (i as f32).to_radians();
         let radians_next = (i as f32 + 1.0).to_radians();
 
-        let x = radians.cos() * radius;
-        let y = radians.sin() * radius * aspect_ratio;
+        let time = time * 0.5;
+        let x = radians.cos();
+        let y = radians.sin() * aspect_ratio;
 
-        let x_next = radians_next.cos() * radius;
-        let y_next = radians_next.sin() * radius * aspect_ratio;
+        let x_next = radians_next.cos();
+        let y_next = radians_next.sin() * aspect_ratio;
 
-        positions.push(Vertex {position: [x * inner_radius, y * inner_radius, 1.0], color: color_first});
-        positions.push(Vertex {position: [x, y, 1.0], color: color_second});
-        positions.push(Vertex {position: [x_next, y_next, 1.0], color: color_second});
+        positions.push(Vertex {position: [x * (inner_radius + time), y * (inner_radius + time), 1.0], color: color_first});
+        positions.push(Vertex {position: [x * (outer_radius + time), y * (outer_radius + time), 1.0], color: color_second});
+        positions.push(Vertex {position: [x_next * (outer_radius + time), y_next * (outer_radius + time), 1.0], color: color_second});
 
-        positions.push(Vertex {position: [x * inner_radius, y * inner_radius, 1.0], color: color_first});
-        positions.push(Vertex {position: [x_next, y_next , 1.0], color: color_second});
-        positions.push(Vertex {position: [x_next * inner_radius, y_next * inner_radius, 1.0], color: color_first});
+        positions.push(Vertex {position: [x * (inner_radius + time), y * (inner_radius + time), 1.0], color: color_first});
+        positions.push(Vertex {position: [x_next * (outer_radius + time), y_next * (outer_radius + time) , 1.0], color: color_second});
+        positions.push(Vertex {position: [x_next * (inner_radius + time), y_next * (inner_radius + time), 1.0], color: color_first});
         
         if i == 0 {continue};
         indices.push(i);
