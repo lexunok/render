@@ -79,30 +79,43 @@ pub fn generate_glow_ring(aspect_ratio: f32, time:f32, outer_radius: f32, inner_
     
     let mut positions = Vec::new();
     let mut indices = Vec::new();
+    indices.extend_from_slice(&[0, 1, 2, 0, 2, 3]);
+    let time = time * 0.5;
 
-    for i in 0..360 {
-        let radians = (i as f32).to_radians();
-        let radians_next = (i as f32 + 1.0).to_radians();
+    for i in (0..360).step_by(2) {
+        let radians = (i as f32 + 1.0).to_radians();
 
-        let time = time * 0.5;
         let x = radians.cos();
         let y = radians.sin() * aspect_ratio;
 
-        let x_next = radians_next.cos();
-        let y_next = radians_next.sin() * aspect_ratio;
+        if i == 0 {
+            let radians = (i as f32).to_radians();
+            let x = radians.cos();
+            let y = radians.sin() * aspect_ratio;
+            positions.push(Vertex {position: [x * (inner_radius + time), y * (inner_radius + time), 1.0], color: color_first}); 
+            positions.push(Vertex {position: [x * (outer_radius + time), y * (outer_radius + time), 1.0], color: color_second}); 
+        }
+        positions.push(Vertex {position: [x * (outer_radius + time), y * (outer_radius + time), 1.0], color: color_second}); 
+        positions.push(Vertex {position: [x * (inner_radius + time), y * (inner_radius + time), 1.0], color: color_first}); 
 
-        positions.push(Vertex {position: [x * (inner_radius + time), y * (inner_radius + time), 1.0], color: color_first});
-        positions.push(Vertex {position: [x * (outer_radius + time), y * (outer_radius + time), 1.0], color: color_second});
-        positions.push(Vertex {position: [x_next * (outer_radius + time), y_next * (outer_radius + time), 1.0], color: color_second});
-
-        positions.push(Vertex {position: [x * (inner_radius + time), y * (inner_radius + time), 1.0], color: color_first});
-        positions.push(Vertex {position: [x_next * (outer_radius + time), y_next * (outer_radius + time) , 1.0], color: color_second});
-        positions.push(Vertex {position: [x_next * (inner_radius + time), y_next * (inner_radius + time), 1.0], color: color_first});
-        
-        if i == 0 {continue};
-        indices.push(i);
-        indices.push(0);
+        if i == 0 || i == 1 {continue;} 
         indices.push(i + 1);
+        indices.push(i);
+        indices.push(i + 2);
+        indices.push(i + 1);
+        indices.push(i + 2);
+        indices.push(i + 3);
     };
+    let x = (360 as f32).to_radians().cos();
+    let y = (360 as f32).to_radians().sin() * aspect_ratio;
+    positions.push(Vertex {position: [x * (outer_radius + time), y *  (outer_radius + time), 1.0], color: color_second});
+    positions.push(Vertex {position: [x * (inner_radius + time), y * (inner_radius + time), 1.0], color: color_first});
+    indices.push(361);
+    indices.push(360);
+    indices.push(362);
+    indices.push(361);
+    indices.push(362);
+    indices.push(363);
+
     (positions, indices)
 }

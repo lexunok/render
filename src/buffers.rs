@@ -2,14 +2,15 @@ use wgpu::{Buffer, Color, Device};
 use wgpu::util::DeviceExt;
 use crate::vertex::{self, Vertex};
 
-
+//todo
 const BLACK:[f32; 4] = [0.0, 0.0, 0.0, 1.0];
-const WHITE:[f32; 4] = [1.0, 1.0, 1.0, 1.0];
+//const WHITE:[f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const PURPLE:[f32; 4] = [0.462745098, 0.584313725, 1.0, 1.0];
 
-pub fn create(aspect_ratio: f32, device: &Device, time:f32) ->  Vec<Buffer> {
+pub fn create(aspect_ratio: f32, device: &Device, time:f32) ->  (Vec<Buffer>, Vec<Buffer>) {
     let mut verices = Vec::new();
-   
+    let mut indices = Vec::new();
+
     let color = [0.462745098+ (time * 4.0), 0.6 + (time * 4.0), 1.0, 0.5];
     let ring = vertex::generate_ring(aspect_ratio, 0.4, 0.85, PURPLE);
     let glow_ring_outer = vertex::generate_glow_ring(aspect_ratio, time, 0.45,0.4, color, BLACK);
@@ -19,18 +20,16 @@ pub fn create(aspect_ratio: f32, device: &Device, time:f32) ->  Vec<Buffer> {
     let glow_ring_outer = get_index_vertex_buffer(glow_ring_outer, device);
     let glow_ring_inner = get_index_vertex_buffer(glow_ring_inner, device);
 
-    verices.push(ring);
-    verices.push(glow_ring_outer);
-    verices.push(glow_ring_inner);
+    verices.push(ring.0);
+    verices.push(glow_ring_outer.0);
+    verices.push(glow_ring_inner.0);
 
-    // indices.push(res_1.1);
-    // indices.push(res_2.1);
-    // indices.push(res_3.1);
+    indices.push(glow_ring_outer.1);
 
-    verices
+    (verices, indices)
 }
 
-fn get_index_vertex_buffer(shape: (Vec<Vertex>, Vec<u16>), device: &Device) -> wgpu::Buffer {
+fn get_index_vertex_buffer(shape: (Vec<Vertex>, Vec<u16>), device: &Device) -> (wgpu::Buffer, wgpu::Buffer) {
     //Создаем вертекс буфер
     let vertex_buffer = device.create_buffer_init(
         &wgpu::util::BufferInitDescriptor {
@@ -47,5 +46,5 @@ fn get_index_vertex_buffer(shape: (Vec<Vertex>, Vec<u16>), device: &Device) -> w
             usage: wgpu::BufferUsages::INDEX,
         }
     );
-    vertex_buffer
+    (vertex_buffer, index_buffer)
 }

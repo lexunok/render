@@ -99,15 +99,6 @@ impl<'a> State<'a> {
         self.hardware.config.height = new_size.height;
         self.hardware.surface.configure(&self.hardware.device, &self.hardware.config);
     }
-
-    fn input(&mut self, event: &WindowEvent) -> bool {
-        false
-    }
-
-    pub fn update(&mut self) {
-        //todo!()
-    }
-
     pub fn render(&mut self) {
         if self.time < -0.03 {
             self.is_inc = true;
@@ -123,7 +114,7 @@ impl<'a> State<'a> {
         }
   
         let aspect_ratio = self.hardware.size.width as f32 / self.hardware.size.height as f32;
-        let vertex_buffers = buffers::create(aspect_ratio, &self.hardware.device, self.time);
+        let buffers = buffers::create(aspect_ratio, &self.hardware.device, self.time);
         // Получаем следующий кадр.
         let frame = self.hardware.surface.get_current_texture().unwrap();
         // Создаём View для изображения этого кадра.
@@ -151,16 +142,17 @@ impl<'a> State<'a> {
             //Задаем графический конвейер
             rpass.set_pipeline(&self.render_pipeline);
             
-            rpass.set_vertex_buffer(0, vertex_buffers[0].slice(..));
+            rpass.set_vertex_buffer(0, buffers.0[0].slice(..));
             rpass.draw(0..2160, 0..1);
 
-            rpass.set_vertex_buffer(0, vertex_buffers[1].slice(..));
-            rpass.draw(0..2160, 0..1);
-            rpass.set_vertex_buffer(0, vertex_buffers[2].slice(..));
-            rpass.draw(0..2160, 0..1);
+            rpass.set_vertex_buffer(0, buffers.0[1].slice(..));
+            rpass.set_index_buffer(buffers.1[0].slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..1086,0, 0..1);
 
-            //rpass.set_index_buffer(self.index_buffers[0].slice(..), wgpu::IndexFormat::Uint16);
-            //rpass.draw_indexed(0..self.num_indices,0, 0..1);
+            rpass.set_vertex_buffer(0, buffers.0[2].slice(..));
+            rpass.set_index_buffer(buffers.1[0].slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..1086,0, 0..1);
+
         }
         // Передаем буфер в очередь команд устройства
         self.hardware.queue.submit(Some(encoder.finish()));
