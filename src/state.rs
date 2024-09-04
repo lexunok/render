@@ -1,12 +1,13 @@
 use wgpu::BlendComponent;
-use winit::{event::WindowEvent, window::Window};
+use winit::window::Window;
 
-use crate::{buffers, setup::{self, Preload}, vertex::Vertex};
+use crate::{buffers, setup::{self, Preload}, vertex_generator::Vertex};
 
 pub struct State<'a> {
     window: &'a Window,
     hardware: Preload<'a>,
     render_pipeline: wgpu::RenderPipeline,
+    index_buffers: Vec<(wgpu::Buffer, u32)>,
     time:f32,
     is_inc: bool
 }
@@ -80,10 +81,12 @@ impl<'a> State<'a> {
             cache: None, 
         });
         let time = 0.0;
+        let index_buffers = buffers::create_index(&hardware.device);
         Self {
             window,
             hardware,
             render_pipeline,
+            index_buffers,
             time,
             is_inc: true
         }
@@ -114,7 +117,8 @@ impl<'a> State<'a> {
         }
   
         let aspect_ratio = self.hardware.size.width as f32 / self.hardware.size.height as f32;
-        let buffers = buffers::create(aspect_ratio, &self.hardware.device, self.time);
+
+        let vertex_buffers = buffers::create_vertex(aspect_ratio, &self.hardware.device, self.time);
         // Получаем следующий кадр.
         let frame = self.hardware.surface.get_current_texture().unwrap();
         // Создаём View для изображения этого кадра.
@@ -142,16 +146,17 @@ impl<'a> State<'a> {
             //Задаем графический конвейер
             rpass.set_pipeline(&self.render_pipeline);
             
-            rpass.set_vertex_buffer(0, buffers.0[0].slice(..));
-            rpass.draw(0..2160, 0..1);
+            rpass.set_vertex_buffer(0, vertex_buffers[0].slice(..));
+            rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..self.index_buffers[0].1, 0, 0..1);
 
-            rpass.set_vertex_buffer(0, buffers.0[1].slice(..));
-            rpass.set_index_buffer(buffers.1[0].slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..1086,0, 0..1);
+            rpass.set_vertex_buffer(0, vertex_buffers[1].slice(..));
+            rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);
 
-            rpass.set_vertex_buffer(0, buffers.0[2].slice(..));
-            rpass.set_index_buffer(buffers.1[0].slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..1086,0, 0..1);
+            rpass.set_vertex_buffer(0, vertex_buffers[2].slice(..));
+            rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);
 
         }
         // Передаем буфер в очередь команд устройства

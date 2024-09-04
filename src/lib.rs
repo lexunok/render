@@ -1,12 +1,12 @@
-use std::time::Instant;
 
 use state::State;
 use winit::{event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey}};
 
 mod state;
-mod vertex;
+mod vertex_generator;
 mod buffers;
 mod setup;
+mod index_generator;
 
 pub async fn run() {
     let event_loop = EventLoop::new().unwrap();
