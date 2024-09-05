@@ -1,19 +1,20 @@
 
 use state::State;
-use winit::{event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey}};
+use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey}};
 
 mod state;
 mod vertex_generator;
 mod buffers;
 mod setup;
 mod index_generator;
+mod colors;
 
 pub async fn run() {
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 
     let window = winit::window::WindowBuilder::new()
-        .with_fullscreen(Some(winit::window::Fullscreen::Borderless(None)))
+        .with_inner_size(PhysicalSize::new(400,1080))
         .with_title("Jarvis")
         .build(&event_loop)
         .unwrap();
@@ -26,7 +27,7 @@ pub async fn run() {
                 Event::AboutToWait => {
                     state.window().request_redraw();
                 },
-                Event::WindowEvent { window_id, event } 
+                Event::WindowEvent { window_id: _, event } 
                     => match event {
                         WindowEvent::Resized(new_size) => {
                             state.resize(new_size);

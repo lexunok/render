@@ -75,7 +75,6 @@ pub fn generate_ring(aspect_ratio: f32, outer_radius: f32, inner_radius:f32, col
 pub fn generate_glow_ring(aspect_ratio: f32, time:f32, outer_radius: f32, inner_radius:f32, color_first: [f32; 4], color_second: [f32; 4]) -> Vec<Vertex> {
     
     let mut positions = Vec::new();
-    let time = time * 0.5;
 
     for i in (0..360).step_by(2) {
         let radians = (i as f32 + 1.0).to_radians();

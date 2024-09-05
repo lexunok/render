@@ -1,20 +1,18 @@
 use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
+use crate::colors::*;
 use crate::index_generator;
 use crate::vertex_generator::{self, Vertex};
 
-//todo
-const BLACK:[f32; 4] = [0.0, 0.0, 0.0, 1.0];
-//const WHITE:[f32; 4] = [1.0, 1.0, 1.0, 1.0];
-const PURPLE:[f32; 4] = [0.462745098, 0.584313725, 1.0, 1.0];
-
 pub fn create_vertex(aspect_ratio: f32, device: &Device, time:f32) ->  Vec<Buffer> {
+    let mut dynamic_color = [0.462745098 - time * 15.5 , 0.6 - time * 20.0, 1.0 - time * 34.0, 0.5];
+    if time > 0.0295 {
+        dynamic_color = [0.0, 0.0, 0.0, 0.5];
+    }
 
-    let dynamic_color = [0.462745098 + (time * 4.0), 0.6 + (time * 4.0), 1.0, 0.5];
-
-    let ring = vertex_generator::generate_ring(aspect_ratio, 0.41, 0.34, PURPLE);
-    let glow_ring_outer = vertex_generator::generate_glow_ring(aspect_ratio, time, 0.45,0.4, dynamic_color, BLACK);
-    let glow_ring_inner = vertex_generator::generate_glow_ring(aspect_ratio, time, 0.4,0.3, BLACK, dynamic_color);
+    let ring = vertex_generator::generate_ring(aspect_ratio, 0.43, 0.34, PURPLE);
+    let glow_ring_outer = vertex_generator::generate_glow_ring(aspect_ratio, time, 0.45,0.4, PURPLE, BLACK);
+    let glow_ring_inner = vertex_generator::generate_glow_ring(aspect_ratio, time, 0.4,0.31, BLACK, dynamic_color);
     
     vec![
         get_vertex_buffer(ring, device),

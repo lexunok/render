@@ -11,8 +11,8 @@ pub struct State<'a> {
     render_pipeline: wgpu::RenderPipeline,
     index_buffers: Vec<(wgpu::Buffer, u32)>,
     is_record: Arc<Mutex<bool>>,
-    time:f32,
-    is_inc: bool
+    counter:i16,
+    direction: i16
 }
 
 impl<'a> State<'a> {
@@ -83,16 +83,15 @@ impl<'a> State<'a> {
             multiview: None,
             cache: None, 
         });
-        let time = 0.0;
         let index_buffers = buffers::create_index(&hardware.device);
         Self {
             window,
             hardware,
             render_pipeline,
             index_buffers,
-            time,
             is_record: Arc::new(Mutex::new(false)),
-            is_inc: true,
+            counter: 0,
+            direction: 1,
         }
     }
 
@@ -121,23 +120,16 @@ impl<'a> State<'a> {
         if *self.is_record.lock().unwrap() == true {
             //print!("RECORD-");
         }
-        //update
-        if self.time < -0.03 {
-            self.is_inc = true;
+
+        self.counter += self.direction;
+        if self.counter == 0 || self.counter == 300 {
+            self.direction = -self.direction
         }
-        else if self.time > 0.03 {
-            self.is_inc = false;
-        }
-        if self.is_inc {
-            self.time += 0.00005;
-        }
-        else {
-            self.time -= 0.00005;
-        }
+        let time = self.counter as f32 / 10000.0;
   
         let aspect_ratio = self.hardware.size.width as f32 / self.hardware.size.height as f32;
 
-        let vertex_buffers = buffers::create_vertex(aspect_ratio, &self.hardware.device, self.time);
+        let vertex_buffers = buffers::create_vertex(aspect_ratio, &self.hardware.device, time);
         // Получаем следующий кадр.
         let frame = self.hardware.surface.get_current_texture().unwrap();
         // Создаём View для изображения этого кадра.
