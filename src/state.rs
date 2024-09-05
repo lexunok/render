@@ -1,3 +1,5 @@
+use std::{sync::{Arc, Mutex}, thread::{self, sleep}, time::Duration};
+
 use wgpu::BlendComponent;
 use winit::window::Window;
 
@@ -8,6 +10,7 @@ pub struct State<'a> {
     hardware: Preload<'a>,
     render_pipeline: wgpu::RenderPipeline,
     index_buffers: Vec<(wgpu::Buffer, u32)>,
+    is_record: Arc<Mutex<bool>>,
     time:f32,
     is_inc: bool
 }
@@ -88,7 +91,8 @@ impl<'a> State<'a> {
             render_pipeline,
             index_buffers,
             time,
-            is_inc: true
+            is_record: Arc::new(Mutex::new(false)),
+            is_inc: true,
         }
     }
 
@@ -102,7 +106,22 @@ impl<'a> State<'a> {
         self.hardware.config.height = new_size.height;
         self.hardware.surface.configure(&self.hardware.device, &self.hardware.config);
     }
+    pub fn start_record(&self) {
+        let pointer = Arc::clone(&self.is_record);
+        thread::spawn(move || {
+            println!("Start recording");
+            *pointer.lock().unwrap() = true;
+            sleep(Duration::new(5, 0));
+            *pointer.lock().unwrap() = false;
+            println!("Stop recording");
+        });
+    }
     pub fn render(&mut self) {
+
+        if *self.is_record.lock().unwrap() == true {
+            //print!("RECORD-");
+        }
+        //update
         if self.time < -0.03 {
             self.is_inc = true;
         }

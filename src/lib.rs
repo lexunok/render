@@ -34,6 +34,15 @@ pub async fn run() {
                         WindowEvent::RedrawRequested => {
                             state.render();
                         },
+                        WindowEvent::KeyboardInput {
+                            event:
+                            KeyEvent {
+                                state: ElementState::Pressed,
+                                physical_key: PhysicalKey::Code(KeyCode::KeyR),
+                                ..
+                            },
+                        ..
+                        } => {state.start_record();},
                         WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
                             event:
                                 KeyEvent {
