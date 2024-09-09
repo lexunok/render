@@ -12,20 +12,25 @@ pub fn create_vertex(aspect_ratio: f32, device: &Device, time:f32) ->  Vec<Buffe
 
     let ring = vertex_generator::generate_ring(aspect_ratio, 0.43, 0.34, PURPLE);
     let glow_ring_outer = vertex_generator::generate_glow_ring(aspect_ratio, time, 0.45,0.4, PURPLE, BLACK);
-    let glow_ring_inner = vertex_generator::generate_glow_ring(aspect_ratio, time, 0.4,0.31, BLACK, dynamic_color);
+    let glow_ring_inner = vertex_generator::generate_glow_ring(aspect_ratio, time, 0.4,0.3, BLACK, dynamic_color);
+    let circle = vertex_generator::generate_circle(aspect_ratio, 0.5, PURPLE);
     
     vec![
         get_vertex_buffer(ring, device),
         get_vertex_buffer(glow_ring_outer, device),
-        get_vertex_buffer(glow_ring_inner, device)
+        get_vertex_buffer(glow_ring_inner, device),
+        get_vertex_buffer(circle, device),
         ]
 }
 pub fn create_index(device: &Device) -> Vec<(Buffer, u32)> {
     let ring = index_generator::generate_ring();
+    let circle = index_generator::generate_circle();
     let ring_len = ring.len() as u32;
+    let circle_len = circle.len() as u32;
 
     vec![
-        (get_index_buffer(ring, &device), ring_len)
+        (get_index_buffer(ring, &device), ring_len),
+        (get_index_buffer(circle, &device), circle_len),
         ]
 }
 

@@ -15,3 +15,12 @@ pub fn generate_ring() -> Vec<u16> {
 
     indices
 }
+pub fn generate_circle() -> Vec<u16> {
+    let mut indices = Vec::new();
+    for i in 1..361 {
+        indices.push(i);
+        indices.push(0);
+        indices.push(i + 1);
+    };
+    indices
+}

@@ -117,10 +117,6 @@ impl<'a> State<'a> {
     }
     pub fn render(&mut self) {
 
-        if *self.is_record.lock().unwrap() == true {
-            //print!("RECORD-");
-        }
-
         self.counter += self.direction;
         if self.counter == 0 || self.counter == 300 {
             self.direction = -self.direction
@@ -157,18 +153,24 @@ impl<'a> State<'a> {
             //Задаем графический конвейер
             rpass.set_pipeline(&self.render_pipeline);
             
-            rpass.set_vertex_buffer(0, vertex_buffers[0].slice(..));
-            rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..self.index_buffers[0].1, 0, 0..1);
-
-            rpass.set_vertex_buffer(0, vertex_buffers[1].slice(..));
-            rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);
-
-            rpass.set_vertex_buffer(0, vertex_buffers[2].slice(..));
-            rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);
-
+            if !*self.is_record.lock().unwrap() {
+                rpass.set_vertex_buffer(0, vertex_buffers[0].slice(..));
+                rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
+                rpass.draw_indexed(0..self.index_buffers[0].1, 0, 0..1);
+    
+                rpass.set_vertex_buffer(0, vertex_buffers[1].slice(..));
+                rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
+                rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);
+    
+                rpass.set_vertex_buffer(0, vertex_buffers[2].slice(..));
+                rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
+                rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);   
+            }
+            else if *self.is_record.lock().unwrap() {
+                rpass.set_vertex_buffer(0, vertex_buffers[3].slice(..));
+                rpass.set_index_buffer(self.index_buffers[1].0.slice(..), wgpu::IndexFormat::Uint16);
+                rpass.draw_indexed(0..self.index_buffers[1].1, 0, 0..1);
+            }
         }
         // Передаем буфер в очередь команд устройства
         self.hardware.queue.submit(Some(encoder.finish()));
