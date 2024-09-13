@@ -1,16 +1,15 @@
-use std::{sync::{Arc, Mutex}, thread::{self, sleep}, time::Duration};
 
 use wgpu::BlendComponent;
 use winit::window::Window;
 
-use crate::{buffers, setup::{self, Preload}, vertex_generator::Vertex};
+use crate::ui::{buffers, setup::{self, Preload}, vertex_generator::Vertex};
 
 pub struct State<'a> {
     window: &'a Window,
     hardware: Preload<'a>,
     render_pipeline: wgpu::RenderPipeline,
     index_buffers: Vec<(wgpu::Buffer, u32)>,
-    is_record: Arc<Mutex<bool>>,
+    is_record: bool,
     counter:i16,
     direction: i16
 }
@@ -89,7 +88,7 @@ impl<'a> State<'a> {
             hardware,
             render_pipeline,
             index_buffers,
-            is_record: Arc::new(Mutex::new(false)),
+            is_record: false,
             counter: 0,
             direction: 1,
         }
@@ -105,15 +104,16 @@ impl<'a> State<'a> {
         self.hardware.config.height = new_size.height;
         self.hardware.surface.configure(&self.hardware.device, &self.hardware.config);
     }
-    pub fn start_record(&self) {
-        let pointer = Arc::clone(&self.is_record);
-        thread::spawn(move || {
+    pub fn start_record(&mut self) {
+        self.is_record = !self.is_record;
+        if self.is_record {
             println!("Start recording");
-            *pointer.lock().unwrap() = true;
-            sleep(Duration::new(5, 0));
-            *pointer.lock().unwrap() = false;
+            //stream play
+        }
+        else {
             println!("Stop recording");
-        });
+            //stream drop
+        }
     }
     pub fn render(&mut self) {
 
@@ -153,7 +153,7 @@ impl<'a> State<'a> {
             //Задаем графический конвейер
             rpass.set_pipeline(&self.render_pipeline);
             
-            if !*self.is_record.lock().unwrap() {
+            if !self.is_record {
                 rpass.set_vertex_buffer(0, vertex_buffers[0].slice(..));
                 rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
                 rpass.draw_indexed(0..self.index_buffers[0].1, 0, 0..1);
@@ -166,7 +166,7 @@ impl<'a> State<'a> {
                 rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
                 rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);   
             }
-            else if *self.is_record.lock().unwrap() {
+            else if self.is_record{
                 rpass.set_vertex_buffer(0, vertex_buffers[3].slice(..));
                 rpass.set_index_buffer(self.index_buffers[1].0.slice(..), wgpu::IndexFormat::Uint16);
                 rpass.draw_indexed(0..self.index_buffers[1].1, 0, 0..1);

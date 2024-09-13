@@ -1,8 +1,8 @@
 use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
-use crate::colors::*;
-use crate::index_generator;
-use crate::vertex_generator::{self, Vertex};
+use crate::ui::colors::*;
+use crate::ui::index_generator;
+use crate::ui::vertex_generator::{self, Vertex};
 
 pub fn create_vertex(aspect_ratio: f32, device: &Device, time:f32) ->  Vec<Buffer> {
     let mut dynamic_color = [0.462745098 - time * 15.5 , 0.6 - time * 20.0, 1.0 - time * 34.0, 0.5];
