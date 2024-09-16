@@ -106,6 +106,8 @@ impl<'a> State<'a> {
     }
     pub fn start_record(&mut self) {
         self.is_record = !self.is_record;
+        self.counter = 0;
+        self.direction = 1;
         if self.is_record {
             println!("Start recording");
             //stream play
@@ -118,14 +120,16 @@ impl<'a> State<'a> {
     pub fn render(&mut self) {
 
         self.counter += self.direction;
-        if self.counter == 0 || self.counter == 300 {
+    
+        if self.counter == 0 || (self.counter == 300 && !self.is_record) || (self.counter == 100 && self.is_record){
             self.direction = -self.direction
         }
-        let time = self.counter as f32 / 10000.0;
+
+        let time = self.counter as f32;
   
         let aspect_ratio = self.hardware.size.width as f32 / self.hardware.size.height as f32;
 
-        let vertex_buffers = buffers::create_vertex(aspect_ratio, &self.hardware.device, time);
+        let vertex_buffers = buffers::create_vertex(aspect_ratio, &self.hardware.device, time / 10000.0);
         // Получаем следующий кадр.
         let frame = self.hardware.surface.get_current_texture().unwrap();
         // Создаём View для изображения этого кадра.
@@ -167,9 +171,11 @@ impl<'a> State<'a> {
                 rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);   
             }
             else if self.is_record{
-                rpass.set_vertex_buffer(0, vertex_buffers[1].slice(..));
-                rpass.set_index_buffer(self.index_buffers[2].0.slice(..), wgpu::IndexFormat::Uint16);
-                rpass.draw_indexed(0..self.index_buffers[2].1,0, 0..1);
+                let index_buffer = buffers::animate_partial_ring(&self.hardware.device, time);
+
+                rpass.set_vertex_buffer(0, vertex_buffers[4].slice(..));
+                rpass.set_index_buffer(index_buffer.0.slice(..), wgpu::IndexFormat::Uint16);
+                rpass.draw_indexed(0..index_buffer.1,0, 0..1);
                 // rpass.set_vertex_buffer(0, vertex_buffers[3].slice(..));
                 // rpass.set_index_buffer(self.index_buffers[1].0.slice(..), wgpu::IndexFormat::Uint16);
                 // rpass.draw_indexed(0..self.index_buffers[1].1, 0, 0..1);
