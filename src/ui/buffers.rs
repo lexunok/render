@@ -25,12 +25,16 @@ pub fn create_vertex(aspect_ratio: f32, device: &Device, time:f32) ->  Vec<Buffe
 pub fn create_index(device: &Device) -> Vec<(Buffer, u32)> {
     let ring = index_generator::generate_ring();
     let circle = index_generator::generate_circle();
+    let partial_ring = index_generator::generate_partial_ring();
+
     let ring_len = ring.len() as u32;
     let circle_len = circle.len() as u32;
+    let partial_ring_len = partial_ring.len() as u32;
 
     vec![
         (get_index_buffer(ring, &device), ring_len),
         (get_index_buffer(circle, &device), circle_len),
+        (get_index_buffer(partial_ring, &device), partial_ring_len),
         ]
 }
 

@@ -167,9 +167,12 @@ impl<'a> State<'a> {
                 rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);   
             }
             else if self.is_record{
-                rpass.set_vertex_buffer(0, vertex_buffers[3].slice(..));
-                rpass.set_index_buffer(self.index_buffers[1].0.slice(..), wgpu::IndexFormat::Uint16);
-                rpass.draw_indexed(0..self.index_buffers[1].1, 0, 0..1);
+                rpass.set_vertex_buffer(0, vertex_buffers[1].slice(..));
+                rpass.set_index_buffer(self.index_buffers[2].0.slice(..), wgpu::IndexFormat::Uint16);
+                rpass.draw_indexed(0..self.index_buffers[2].1,0, 0..1);
+                // rpass.set_vertex_buffer(0, vertex_buffers[3].slice(..));
+                // rpass.set_index_buffer(self.index_buffers[1].0.slice(..), wgpu::IndexFormat::Uint16);
+                // rpass.draw_indexed(0..self.index_buffers[1].1, 0, 0..1);
             }
         }
         // Передаем буфер в очередь команд устройства
