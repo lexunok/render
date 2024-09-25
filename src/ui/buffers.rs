@@ -6,14 +6,14 @@ use crate::ui::vertex_generator::{self, Vertex};
 
 pub fn create_vertex(device: &Device, time:f32) ->  Vec<Buffer> {
 
-    let ring = vertex_generator::generate_ring(0.43, 0.34, PURPLE);
-    let glow_ring_outer = vertex_generator::generate_glow_ring( time, 0.45,0.4, PURPLE, BLACK);
-    let glow_ring_inner = vertex_generator::generate_glow_ring( time, 0.4,0.3, BLACK, PURPLE);
+    let glow_ring_outer = vertex_generator::generate_glow_ring(time, 0.45,0.4, PURPLE, BLACK);
+    let glow_ring_inner = vertex_generator::generate_glow_ring(time, 0.4,0.3, BLACK, PURPLE);
+    let triangle = vertex_generator::generate_triangle();
     
     vec![
-        get_vertex_buffer(ring, device),
         get_vertex_buffer(glow_ring_outer, device),
         get_vertex_buffer(glow_ring_inner, device),
+        get_vertex_buffer(triangle, device),
         ]
 }
 pub fn create_index(device: &Device) -> Vec<(Buffer, u32)> {
