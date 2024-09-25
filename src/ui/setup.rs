@@ -42,7 +42,7 @@ pub async fn start(window: &Window) -> Preload {
             //Создаем конфиг для поверхности
             let config = wgpu::SurfaceConfiguration {
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: wgpu::TextureFormat::Bgra8Unorm,
                 width: size.width,
                 height: size.height,
                 present_mode: swapchain_capabilities.present_modes[0],

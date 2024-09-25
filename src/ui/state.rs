@@ -1,5 +1,5 @@
 
-use wgpu::BlendComponent;
+use wgpu::{BindGroupLayout, BlendComponent};
 use winit::window::Window;
 
 use crate::ui::{buffers, setup::{self, Preload}, vertex_generator::Vertex};
@@ -9,6 +9,7 @@ pub struct State<'a> {
     hardware: Preload<'a>,
     render_pipeline: wgpu::RenderPipeline,
     index_buffers: Vec<(wgpu::Buffer, u32)>,
+    uniform_bind_group_layout: BindGroupLayout,
     is_record: bool,
     counter:i16,
     direction: i16
@@ -21,11 +22,27 @@ impl<'a> State<'a> {
         let hardware = setup::start(window).await;
         
         //Создаем объект шейдера
-        let shader = hardware.device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));    
+        let shader = hardware.device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));   
+
+        let uniform_bind_group_layout = hardware.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }
+            ],
+            label: None,
+        });
 
         let pipeline_layout = hardware.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&uniform_bind_group_layout],
             push_constant_ranges: &[],
         });
     
@@ -33,7 +50,6 @@ impl<'a> State<'a> {
         let render_pipeline = hardware.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(&pipeline_layout),
-            //Указываем вертекс шейдеры (позиции объекта)
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
@@ -42,7 +58,6 @@ impl<'a> State<'a> {
                 ],
                 compilation_options:  wgpu::PipelineCompilationOptions::default(),
             },
-            //Указываем фрагмент шейдеры (раскрашивание пикселей)
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
@@ -83,11 +98,13 @@ impl<'a> State<'a> {
             cache: None, 
         });
         let index_buffers = buffers::create_index(&hardware.device);
+
         Self {
             window,
             hardware,
             render_pipeline,
             index_buffers,
+            uniform_bind_group_layout,
             is_record: false,
             counter: 0,
             direction: 1,
@@ -126,27 +143,35 @@ impl<'a> State<'a> {
         }
 
         let time = self.counter as f32;
-  
         let aspect_ratio = self.hardware.size.width as f32 / self.hardware.size.height as f32;
 
-        let vertex_buffers = buffers::create_vertex(aspect_ratio, &self.hardware.device, time / 10000.0);
-        // Получаем следующий кадр.
+        let vertex_buffers = buffers::create_vertex(&self.hardware.device, time / 10000.0);
+        let uniform_buffers = buffers::create_uniform(aspect_ratio, &self.hardware.device);
+
+        let uniform_bind_group = &self.hardware.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.uniform_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: uniform_buffers[0].as_entire_binding(),
+                }
+            ],
+            label: None,
+        }); 
+
         let frame = self.hardware.surface.get_current_texture().unwrap();
-        // Создаём View для изображения этого кадра.
         let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        // Создаем объект для записи последовательности команд рендеринга в буфер для его передачи в устройство на выполнение
         let mut encoder = self.hardware.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {label: None});
-        //Новая область видимости чтобы RenderPass жил не дольше чем CommandEncoder
         {
             let mut rpass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: None,
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &view, // Цель для отрисовки
-                        resolve_target: None, // Используется для мультисэмплинга
+                        view: &view, 
+                        resolve_target: None, 
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),  // Очищаем кадр черным цветом
-                            store: wgpu::StoreOp::Store, // Сохраняем содержимое после завершения данного RenderPass
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            store: wgpu::StoreOp::Store, 
                         },
                     })],
                     depth_stencil_attachment: None,
@@ -154,9 +179,9 @@ impl<'a> State<'a> {
                     occlusion_query_set: None,
                 });
 
-            //Задаем графический конвейер
             rpass.set_pipeline(&self.render_pipeline);
-            
+            rpass.set_bind_group(0, uniform_bind_group, &[]);
+
             if !self.is_record {
                 rpass.set_vertex_buffer(0, vertex_buffers[0].slice(..));
                 rpass.set_index_buffer(self.index_buffers[0].0.slice(..), wgpu::IndexFormat::Uint16);
@@ -171,19 +196,10 @@ impl<'a> State<'a> {
                 rpass.draw_indexed(0..self.index_buffers[0].1,0, 0..1);   
             }
             else if self.is_record{
-                let index_buffer = buffers::animate_partial_ring(&self.hardware.device, time);
 
-                rpass.set_vertex_buffer(0, vertex_buffers[4].slice(..));
-                rpass.set_index_buffer(index_buffer.0.slice(..), wgpu::IndexFormat::Uint16);
-                rpass.draw_indexed(0..index_buffer.1,0, 0..1);
-                // rpass.set_vertex_buffer(0, vertex_buffers[3].slice(..));
-                // rpass.set_index_buffer(self.index_buffers[1].0.slice(..), wgpu::IndexFormat::Uint16);
-                // rpass.draw_indexed(0..self.index_buffers[1].1, 0, 0..1);
             }
         }
-        // Передаем буфер в очередь команд устройства
         self.hardware.queue.submit(Some(encoder.finish()));
-        // Отображаем готовый кадр
         frame.present();
     }
 }
