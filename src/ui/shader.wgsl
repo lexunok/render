@@ -9,11 +9,12 @@ struct VertexOutput {
     @location(0) color: vec4<f32>,
 };
 struct TransformUniform {
-    value: mat4x4<f32>,
+    scale: mat4x4<f32>,
+    rotation: mat4x4<f32>,
 };
 
 @group(0) @binding(0)
-var<uniform> aspect_ratio: vec3<f32>;
+var<uniform> aspect_ratio: vec4<f32>;
 @group(0) @binding(1)
 var<uniform> transform: TransformUniform;
 
@@ -24,7 +25,7 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.color = model.color;
-    out.clip_position = transform.value * vec4<f32>(model.position * aspect_ratio, 1.0);
+    out.clip_position = transform.scale * transform.rotation * vec4<f32>(model.position, 1.0) * aspect_ratio;
     return out;
 }
 

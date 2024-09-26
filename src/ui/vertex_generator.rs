@@ -47,11 +47,4 @@ pub fn generate_glow_ring(outer_radius: f32, inner_radius:f32, color_first: [f32
 
     positions
 }
-pub fn generate_triangle() -> Vec<Vertex> {
-    let mut positions = Vec::new();
-    positions.push(Vertex { position: [0.5, -0.5 , 1.0], color: [1.0, 0.0, 0.5, 1.0] });
-    positions.push(Vertex { position: [0.0, 0.5 , 1.0], color: [1.0, 0.0, 0.5, 1.0] });
-    positions.push(Vertex { position: [-0.5, -0.5 , 1.0], color: [1.0, 0.0, 0.5, 1.0] });
 
-    positions
-}

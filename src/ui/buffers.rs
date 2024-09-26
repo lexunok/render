@@ -16,34 +16,38 @@ pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct TransformUniform {
-    value: [[f32; 4]; 4],
+    scale: [[f32; 4]; 4],
+    rotation: [[f32; 4]; 4],
 }
 
 pub fn create_vertex(device: &Device) ->  Vec<Buffer> {
 
     let glow_ring_outer = vertex_generator::generate_glow_ring(0.45,0.4, PURPLE, BLACK);
     let glow_ring_inner = vertex_generator::generate_glow_ring(0.4,0.3, BLACK, PURPLE);
-    let triangle = vertex_generator::generate_triangle();
     
     vec![
         get_vertex_buffer(glow_ring_outer, device),
         get_vertex_buffer(glow_ring_inner, device),
-        get_vertex_buffer(triangle, device),
         ]
 }
 pub fn create_index(device: &Device) -> Vec<(Buffer, u32)> {
     let ring = index_generator::generate_ring();
     let ring_len = ring.len() as u32;
 
+    let partial_ring = index_generator::generate_partial_ring();
+    let partial_ring_len = partial_ring.len() as u32;
+
     vec![
         (get_index_buffer(ring, &device), ring_len),
+        (get_index_buffer(partial_ring, &device), partial_ring_len),
         ]
 }
 pub fn create_uniform(aspect_ratio:f32, scale:f32, rotation: f32 , device: &Device) -> Vec<Buffer> {
-    let aspect_ratio_uniform = [1.0, aspect_ratio, 1.0];
+    let aspect_ratio_uniform = [1.0, aspect_ratio, 1.0, 1.0];
 
-    let transform = cgmath::Matrix4::from_scale(scale) * cgmath::Matrix4::from_axis_angle(cgmath::Vector3 { x: 0.0, y: 0.0, z: -1.0 }, Rad(rotation)) * OPENGL_TO_WGPU_MATRIX;
-    let transform_uniform = TransformUniform {value: transform.into()};
+    let rotation = cgmath::Matrix4::from_angle_z(Rad(rotation)) * OPENGL_TO_WGPU_MATRIX;
+    let scale = cgmath::Matrix4::from_scale(scale) * OPENGL_TO_WGPU_MATRIX;
+    let transform_uniform = TransformUniform {scale: scale.into(), rotation: rotation.into()};
 
     vec![
         get_uniform_buffer(aspect_ratio_uniform, &device),
