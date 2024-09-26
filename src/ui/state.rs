@@ -10,6 +10,8 @@ pub struct State<'a> {
     render_pipeline: wgpu::RenderPipeline,
     index_buffers: Vec<(wgpu::Buffer, u32)>,
     uniform_bind_group_layout: BindGroupLayout,
+    rotation: f32,
+    scale: f32,
     is_record: bool,
     counter:i16,
     direction: i16
@@ -28,6 +30,16 @@ impl<'a> State<'a> {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
                     visibility: wgpu::ShaderStages::VERTEX,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
@@ -105,6 +117,8 @@ impl<'a> State<'a> {
             render_pipeline,
             index_buffers,
             uniform_bind_group_layout,
+            scale: 1.2,
+            rotation: 0.0,
             is_record: false,
             counter: 0,
             direction: 1,
@@ -125,6 +139,8 @@ impl<'a> State<'a> {
         self.is_record = !self.is_record;
         self.counter = 0;
         self.direction = 1;
+        self.rotation = 0.0;
+        
         if self.is_record {
             println!("Start recording");
             //stream play
@@ -135,18 +151,24 @@ impl<'a> State<'a> {
         }
     }
     pub fn render(&mut self) {
-        let time = self.counter as f32 / 10000.0;
 
         self.counter += self.direction;
-    
-        if self.counter == 0 || (self.counter == 300 && !self.is_record) || (self.counter == 100 && self.is_record){
-            self.direction = -self.direction
+
+        if !self.is_record {
+            self.scale += self.direction as f32 / 1000.0;
+        }
+        else {
+            self.rotation += 0.01;
         }
 
+        if self.counter == 0 || (self.counter == 300 && !self.is_record) {
+            self.direction = -self.direction;
+        }
+        
         let aspect_ratio = self.hardware.size.width as f32 / self.hardware.size.height as f32;
 
-        let vertex_buffers = buffers::create_vertex(&self.hardware.device, time);
-        let uniform_buffers = buffers::create_uniform(aspect_ratio, &self.hardware.device);
+        let vertex_buffers = buffers::create_vertex(&self.hardware.device);
+        let uniform_buffers = buffers::create_uniform(aspect_ratio, self.scale, self.rotation,&self.hardware.device);
 
         let uniform_bind_group = &self.hardware.device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.uniform_bind_group_layout,
@@ -154,6 +176,10 @@ impl<'a> State<'a> {
                 wgpu::BindGroupEntry {
                     binding: 0,
                     resource: uniform_buffers[0].as_entire_binding(),
+                }, 
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: uniform_buffers[1].as_entire_binding(),
                 }
             ],
             label: None,
