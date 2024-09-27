@@ -1,4 +1,6 @@
 
+use std::f32::consts::PI;
+
 use wgpu::{BindGroupLayout, BlendComponent};
 use winit::window::Window;
 
@@ -95,7 +97,7 @@ impl<'a> State<'a> {
                 topology: wgpu::PrimitiveTopology::TriangleList, 
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw, 
-                cull_mode: Some(wgpu::Face::Back),
+                cull_mode: None,
                 polygon_mode: wgpu::PolygonMode::Fill,
                 unclipped_depth: false,
                 conservative: false,
@@ -154,12 +156,15 @@ impl<'a> State<'a> {
     pub fn render(&mut self) {
 
         let aspect_ratio = self.hardware.size.width as f32 / self.hardware.size.height as f32;
-        self.counter += self.direction;
 
         if !self.is_record {
+            self.counter += self.direction;
             self.scale += self.direction as f32 / 1000.0;
         }
         else {
+            if self.rotation >= 8.0 * PI {
+                self.rotation = 0.0;
+            }
             self.rotation += 0.01;
         }
 
