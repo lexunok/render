@@ -48,7 +48,7 @@ pub async fn start(window: &Window) -> Preload {
                 present_mode: swapchain_capabilities.present_modes[0],
                 alpha_mode: swapchain_capabilities.alpha_modes[0],
                 view_formats: vec![],
-                desired_maximum_frame_latency: 2,
+                desired_maximum_frame_latency: 3,
             };
 
             Preload {

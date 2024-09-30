@@ -1,6 +1,7 @@
 
 use std::f32::consts::PI;
 
+use smaa::{SmaaMode, SmaaTarget};
 use wgpu::{BindGroupLayout, BlendComponent};
 use winit::window::Window;
 
@@ -12,6 +13,7 @@ pub struct State<'a> {
     render_pipeline: wgpu::RenderPipeline,
     index_buffers: Vec<(wgpu::Buffer, u32)>,
     uniform_bind_group_layout: BindGroupLayout,
+    smaa_target: SmaaTarget,
     rotation: f32,
     scale: f32,
     is_record: bool,
@@ -27,7 +29,14 @@ impl<'a> State<'a> {
         
         //Создаем объект шейдера
         let shader = hardware.device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));   
-
+        let smaa_target = SmaaTarget::new(
+            &hardware.device,
+            &hardware.queue,
+            hardware.config.width,
+            hardware.config.height,
+            hardware.config.format,
+            SmaaMode::Smaa1X,
+        );
         let uniform_bind_group_layout = hardware.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
@@ -119,6 +128,7 @@ impl<'a> State<'a> {
             render_pipeline,
             index_buffers,
             uniform_bind_group_layout,
+            smaa_target,
             scale: 1.4,
             rotation: 0.0,
             is_record: false,
@@ -136,6 +146,8 @@ impl<'a> State<'a> {
         self.hardware.config.width = new_size.width;
         self.hardware.config.height = new_size.height;
         self.hardware.surface.configure(&self.hardware.device, &self.hardware.config);
+
+        self.smaa_target.resize(&self.hardware.device, new_size.width, new_size.height);
     }
     pub fn start_record(&mut self) {
         self.is_record = !self.is_record;
@@ -162,10 +174,10 @@ impl<'a> State<'a> {
             self.scale += self.direction as f32 / 1000.0;
         }
         else {
-            if self.rotation >= 8.0 * PI {
+            if self.rotation >= 40.0 * PI {
                 self.rotation = 0.0;
             }
-            self.rotation += 0.01;
+            self.rotation += 0.03;
         }
 
         if self.counter == 0 || (self.counter == 300 && !self.is_record) {
@@ -192,13 +204,15 @@ impl<'a> State<'a> {
 
         let frame = self.hardware.surface.get_current_texture().unwrap();
         let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let smaa_frame = self.smaa_target.start_frame(&self.hardware.device, &self.hardware.queue, &view);
+
         let mut encoder = self.hardware.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {label: None});
         {
             let mut rpass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: None,
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &view, 
+                        view: &smaa_frame, 
                         resolve_target: None, 
                         ops: wgpu::Operations {
                             load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -233,6 +247,7 @@ impl<'a> State<'a> {
             }
         }
         self.hardware.queue.submit(Some(encoder.finish()));
+        smaa_frame.resolve();
         frame.present();
     }
 }
